@@ -1,0 +1,64 @@
+CREATE TABLE Users (
+    ID INT PRIMARY KEY,
+    FirstName VARCHAR(50),
+    LastName VARCHAR(50),
+    Role VARCHAR(50),
+    Email VARCHAR(100),
+    Password VARCHAR(100),
+    HireDate DATE
+);
+
+CREATE TABLE Passengers (
+    PassengerID INT PRIMARY KEY,
+    FirstName VARCHAR(50),
+    LastName VARCHAR(50),
+    DateOfBirth DATE,
+    PassportNumber VARCHAR(50),
+    Nationality VARCHAR(50),
+    ContactInfo VARCHAR(100)
+);
+
+CREATE TABLE Airports (
+    AirportID INT PRIMARY KEY,
+    AirportCode VARCHAR(10),
+    AirportName VARCHAR(100),
+    City VARCHAR(50),
+    Country VARCHAR(50)
+);
+
+CREATE TABLE Airplanes (
+    AirplaneID INT PRIMARY KEY,
+    Model VARCHAR(50),
+    Manufacturer VARCHAR(50),
+    Capacity INT,
+    YearManufactured INT
+);
+
+CREATE TABLE Flights (
+    FlightID INT PRIMARY KEY,
+    FlightNumber VARCHAR(20),
+    DepartureAirportID INT,
+    ArrivalAirportID INT,
+    AirplaneID INT,
+    DepartureTime DATETIME,
+    ArrivalTime DATETIME,
+    Status VARCHAR(50),
+    StaffID INT,
+    FOREIGN KEY (DepartureAirportID) REFERENCES Airports(AirportID),
+    FOREIGN KEY (ArrivalAirportID) REFERENCES Airports(AirportID),
+    FOREIGN KEY (AirplaneID) REFERENCES Airplanes(AirplaneID),
+    FOREIGN KEY (StaffID) REFERENCES Users(ID)
+);
+
+CREATE TABLE Bookings (
+    BookingID INT PRIMARY KEY,
+    FlightID INT,
+    PassengerID INT,
+    UserID INT,
+    BookingDate DATE,
+    SeatNumber VARCHAR(10),
+    TicketPrice DECIMAL(10, 2),
+    FOREIGN KEY (FlightID) REFERENCES Flights(FlightID),
+    FOREIGN KEY (PassengerID) REFERENCES Passengers(PassengerID),
+    FOREIGN KEY (UserID) REFERENCES Users(ID)
+);
