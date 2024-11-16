@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+using System.Configuration;
 using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Data.SqlClient;
 using System.Windows.Forms;
 
 namespace SkyCrew
@@ -15,15 +11,40 @@ namespace SkyCrew
         public Pilot()
         {
             InitializeComponent();
+            LoadFlightSchedule();
         }
 
-        private void lblHeader_Click(object sender, EventArgs e)
+        private void LoadFlightSchedule()
         {
+            string connectionString = ConfigurationManager.ConnectionStrings["LNBAirlines"].ConnectionString;
 
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    string query = "SELECT FlightNumber, DepartureTime, ArrivalTime, Status FROM Flights"; // Adjusted columns as needed
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, conn);
+                    DataTable flightTable = new DataTable();
+                    adapter.Fill(flightTable);
+
+                    dataGridViewFlights.DataSource = flightTable;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error loading flight schedule: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    if (conn.State == ConnectionState.Open)
+                        conn.Close();
+                }
+            }
         }
+
         private void buttonExit_Click(object sender, EventArgs e)
         {
-            Application.Exit();
+            this.Close();
         }
     }
 }
