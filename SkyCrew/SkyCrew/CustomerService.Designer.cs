@@ -31,8 +31,6 @@ namespace SkyCrew
             this.pnlNotifications.SuspendLayout();
             this.pnlShiftStats.SuspendLayout();
             this.SuspendLayout();
-            this.buttonExit.Click += new System.EventHandler(this.buttonExit_Click);
-
             // 
             // headerLine
             // 
@@ -181,9 +179,9 @@ namespace SkyCrew
             this.label1.ForeColor = System.Drawing.Color.DarkBlue;
             this.label1.Location = new System.Drawing.Point(18, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(127, 37);
+            this.label1.Size = new System.Drawing.Size(173, 37);
             this.label1.TabIndex = 11;
-            this.label1.Text = "SkyCrew";
+            this.label1.Text = "LNB Airlines";
             // 
             // label2
             // 
@@ -206,6 +204,7 @@ namespace SkyCrew
             this.buttonExit.TabIndex = 14;
             this.buttonExit.Text = "X";
             this.buttonExit.UseVisualStyleBackColor = true;
+            this.buttonExit.Click += new System.EventHandler(this.buttonExit_Click);
             // 
             // CustomerService
             // 

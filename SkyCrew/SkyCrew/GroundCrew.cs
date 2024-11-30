@@ -1,13 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace SkyCrew
@@ -17,98 +11,146 @@ namespace SkyCrew
         public GroundCrew()
         {
             InitializeComponent();
-            LoadAvailableShifts();
+            LoadFlightSchedule();
+            monthCalendar1.DateSelected += MonthCalendar1_DateSelected;
         }
 
-        private void groupUpcomingShifts_Enter(object sender, EventArgs e)
-        {
-
-        }
-
-        private void pictureBoxUser_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void groupShiftTrends_Enter(object sender, EventArgs e)
-        {
-
-        }
-        private void buttonExit_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
-        private void LoadAvailableShifts()
+        private void LoadFlightSchedule()
         {
             string connectionString = ConfigurationManager.ConnectionStrings["LNBAirlines"].ConnectionString;
+
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 try
                 {
                     conn.Open();
-                    string query = "SELECT FlightID, FlightNumber, DepartureTime FROM Flights WHERE Status = 'Scheduled'";
+                    string query = "SELECT FlightNumber, DepartureTime, ArrivalTime, Status FROM Flights";
                     SqlDataAdapter adapter = new SqlDataAdapter(query, conn);
-                    DataTable shiftsTable = new DataTable();
-                    adapter.Fill(shiftsTable);
+                    DataTable flightTable = new DataTable();
+                    adapter.Fill(flightTable);
 
-                    dataGridViewShifts.DataSource = shiftsTable;
-
-                    // Hide the FlightID column for display purposes
-                    if (dataGridViewShifts.Columns["FlightID"] != null)
-                        dataGridViewShifts.Columns["FlightID"].Visible = false;
+                    dataGridViewShifts.DataSource = flightTable;
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("An error occurred while loading shifts: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                finally
-                {
-                    if (conn.State == ConnectionState.Open)
-                        conn.Close(); // Ensure the connection is closed
+                    MessageBox.Show("Error loading flight schedule: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
 
+        private void MonthCalendar1_DateSelected(object sender, DateRangeEventArgs e)
+        {
+            DateTime selectedDate = e.Start; // The date user clicked
+            LoadFlightsForDate(selectedDate);
+        }
 
+        private void LoadFlightsForDate(DateTime date)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["LNBAirlines"].ConnectionString;
 
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    string query = @"
+                        SELECT FlightNumber, DepartureTime, ArrivalTime, Status 
+                        FROM Flights 
+                        WHERE CAST(DepartureTime AS DATE) = @SelectedDate";
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, conn);
+                    adapter.SelectCommand.Parameters.AddWithValue("@SelectedDate", date);
+                    DataTable flightTable = new DataTable();
+                    adapter.Fill(flightTable);
 
+                    dataGridViewShifts.DataSource = flightTable;
+
+                    if (flightTable.Rows.Count == 0)
+                    {
+                        MessageBox.Show("No flights scheduled for the selected date.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error loading flights for date: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
 
         private void buttonAcceptShift_Click(object sender, EventArgs e)
         {
-            // Ensure a shift is selected
             if (dataGridViewShifts.SelectedRows.Count == 0)
             {
                 MessageBox.Show("Please select a shift to accept.", "No Shift Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // Retrieve the selected shift's FlightID from the hidden column
-            int selectedFlightID = Convert.ToInt32(dataGridViewShifts.SelectedRows[0].Cells["FlightID"].Value);
+            string selectedFlightNumber = dataGridViewShifts.SelectedRows[0].Cells["FlightNumber"].Value.ToString();
 
             try
             {
                 using (SqlConnection conn = DatabaseConnection.ConnectToDatabase())
                 {
-                    conn.Open(); // Open the connection at the beginning
+                    conn.Open();
+                    string updateQuery = "UPDATE Flights SET Status = 'Accepted' WHERE FlightNumber = @FlightNumber";
+                    SqlCommand cmd = new SqlCommand(updateQuery, conn);
+                    cmd.Parameters.AddWithValue("@FlightNumber", selectedFlightNumber);
 
-                    // Update query to mark the shift as accepted
-                    string updateQuery = "UPDATE Flights SET Status = 'Accepted' WHERE FlightID = @FlightID";
-                    using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    if (rowsAffected > 0)
                     {
-                        cmd.Parameters.AddWithValue("@FlightID", selectedFlightID);
-                        int rowsAffected = cmd.ExecuteNonQuery();
-
-                        if (rowsAffected > 0)
-                        {
-                            MessageBox.Show("Shift accepted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            LoadAvailableShifts(); // Refresh shifts to remove accepted ones
-                        }
-                        else
-                        {
-                            MessageBox.Show("Failed to accept the shift. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        }
+                        MessageBox.Show("Shift accepted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        LoadFlightsForDate(monthCalendar1.SelectionStart); // Refresh for the selected date
                     }
-                } // The connection will automatically close here due to the `using` statement
+                    else
+                    {
+                        MessageBox.Show("Failed to accept the shift.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error accepting shift: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void buttonCancelShift_Click(object sender, EventArgs e)
+        {
+            if (dataGridViewShifts.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Please select a shift to drop.", "No Shift Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string selectedFlightNumber = dataGridViewShifts.SelectedRows[0].Cells["FlightNumber"].Value.ToString();
+            string selectedStatus = dataGridViewShifts.SelectedRows[0].Cells["Status"].Value.ToString();
+
+            // Confirm that only "Accepted" shifts can be dropped
+            if (!string.Equals(selectedStatus, "Accepted", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("Only accepted shifts can be dropped.", "Invalid Action", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                using (SqlConnection conn = DatabaseConnection.ConnectToDatabase())
+                {
+                    conn.Open();
+                    string updateQuery = "UPDATE Flights SET Status = 'Scheduled' WHERE FlightNumber = @FlightNumber";
+                    SqlCommand cmd = new SqlCommand(updateQuery, conn);
+                    cmd.Parameters.AddWithValue("@FlightNumber", selectedFlightNumber);
+
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    if (rowsAffected > 0)
+                    {
+                        MessageBox.Show("Shift dropped successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        LoadFlightsForDate(monthCalendar1.SelectionStart); // Refresh for the selected date
+                    }
+                    else
+                    {
+                        MessageBox.Show("Failed to drop the shift. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -116,5 +158,9 @@ namespace SkyCrew
             }
         }
 
+        private void buttonExit_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
     }
 }

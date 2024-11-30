@@ -15,3 +15,4 @@ C:\Users\treyc\source\repos\SkyCrew\SkyCrew\obj\Debug\SkyCrew.Admin.resources
 C:\Users\treyc\source\repos\SkyCrew\SkyCrew\bin\Debug\System.Configuration.ConfigurationManager.dll
 C:\Users\treyc\source\repos\SkyCrew\SkyCrew\bin\Debug\System.Configuration.ConfigurationManager.xml
 C:\Users\treyc\source\repos\SkyCrew\SkyCrew\obj\Debug\SkyCrew.csproj.Up2Date
+C:\Users\treyc\source\repos\SkyCrew\SkyCrew\obj\Debug\SkyCrew.Management.resources
